@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::rc::Rc;
 
 use serde::Serialize;
 use serde::Deserialize;
@@ -35,8 +34,25 @@ impl MyTrait for B {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+struct ArcContainer {
+    obj: Arc<dyn MyTrait>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
 struct Container {
-    aaa: Arc<dyn MyTrait>,
+    aaa: ArcContainer,
+}
+
+impl Default for ArcContainer {
+    fn default() -> Self {
+        Self{obj: Arc::new(A{f1: "A".to_string()})}
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct Container2 {
+    #[serde(default)]
+    container: Container,
 }
 
 fn main() -> serde_json::Result<()> {
@@ -53,11 +69,11 @@ fn main() -> serde_json::Result<()> {
     let de: Box<dyn MyTrait> = serde_json::from_str(&b_trait_serialized)?;
     println!("{}", de.str());
 
-    let cont = Container{aaa: Arc::new(b)};
+    let cont = Container{..Default::default()};
     let cont_serialized = serde_json::to_string(&cont)?;
     println!("{cont_serialized}");
     let cont2 = serde_json::from_str::<Container>(&cont_serialized)?;
-    println!("{}", cont2.aaa.str());
+    println!("{}", cont2.aaa.obj.str());
 
     Ok(())
 }
